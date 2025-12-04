@@ -96,13 +96,20 @@ st.markdown(
 # ============================================================
 # LOAD MODEL
 # ============================================================
+
 def load_model():
     try:
-        model_path = os.path.join(os.path.dirname(__file__), "EfficientNetB0_plant_disease.keras")
+        # Try SavedModel format first
+        model_path = os.path.join(os.path.dirname(__file__), "plant_disease_model")
         if os.path.exists(model_path):
-            return tf.keras.models.load_model(model_path, compile=False)
-        else:
-            return None
+            return tf.saved_model.load(model_path)
+        
+        # Fallback to .keras format
+        keras_path = os.path.join(os.path.dirname(__file__), "EfficientNetB0_plant_disease.keras")
+        if os.path.exists(keras_path):
+            return tf.keras.models.load_model(keras_path, compile=False)
+        
+        return None
     except:
         return None
 
@@ -309,7 +316,6 @@ def preprocess_image_for_disease(image: Image.Image) -> np.ndarray:
 # ============================================================
 
 def predict_disease(image: Image.Image):
-    def predict_disease(image: Image.Image):
     if model is None:
         # Demo mode - return a sample prediction
         import random
@@ -317,9 +323,17 @@ def predict_disease(image: Image.Image):
         predicted_class = random.choice(demo_classes)
         confidence = 0.85
         return predicted_class, confidence
+    
     try:
         img_array = preprocess_image_for_disease(image)
-        predictions = model.predict(img_array)
+        
+        # Handle both SavedModel and Keras model formats
+        if hasattr(model, 'predict'):
+            predictions = model.predict(img_array)
+        else:
+            # SavedModel format
+            predictions = model(img_array).numpy()
+            
         predicted_index = int(np.argmax(predictions[0]))
         confidence = float(np.max(predictions[0]))
         predicted_class = class_names[predicted_index]
