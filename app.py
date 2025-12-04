@@ -96,14 +96,15 @@ st.markdown(
 # ============================================================
 # LOAD MODEL
 # ============================================================
-@st.cache_resource
 def load_model():
     try:
         model_path = os.path.join(os.path.dirname(__file__), "EfficientNetB0_plant_disease.keras")
-        return tf.keras.models.load_model(model_path, compile=False)
-    except Exception as e:
-        st.error(f"Error loading model: {str(e)}")
-        st.stop()
+        if os.path.exists(model_path):
+            return tf.keras.models.load_model(model_path, compile=False)
+        else:
+            return None
+    except:
+        return None
 
 model = load_model()
 
